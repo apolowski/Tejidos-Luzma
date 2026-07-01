@@ -1,0 +1,117 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
+
+export default function ProductDetail({ ui }) {
+  const { id } = useParams();
+  const { token } = useAuth();
+  const [p, setP] = useState(null);
+  const [variantId, setVariantId] = useState("");
+  const [qty, setQty] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const priceLabel = useMemo(() => {
+    const v = p?.price || 0;
+    return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(v);
+  }, [p]);
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    setMsg("");
+    try {
+      const res = await api.get(`/products/${id}`);
+      setP(res.data);
+      const first = res.data?.variants?.[0]?.id || "";
+      setVariantId(first ? String(first) : "");
+    } catch {
+      setError("No se pudo cargar el producto.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addToCart() {
+    setMsg("");
+    setError("");
+    if (!token) {
+      setError("Inicia sesión para comprar.");
+      return;
+    }
+    if (!variantId) {
+      setError("Selecciona una variante.");
+      return;
+    }
+    try {
+      await api.post("/cart/add", { product_variant_id: Number(variantId), quantity: Number(qty) });
+      ui?.setCartOpen(true);
+      setMsg("Agregado al carrito.");
+    } catch (e) {
+      setError(e?.response?.data?.detail || "No se pudo agregar al carrito.");
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) return <div className="panel muted">Cargando...</div>;
+  if (error) return <div className="panel danger">{error}</div>;
+  if (!p) return null;
+
+  return (
+    <div className="detail">
+      <div className="detailMedia">
+        {p.image_url ? <img src={p.image_url} alt={p.name} /> : <div className="placeholder big">Sin imagen</div>}
+      </div>
+      <div className="detailBody">
+        <Link to="/" className="muted">
+          ← Volver
+        </Link>
+        <h2>{p.name}</h2>
+        <div className="detailMeta">
+          <span className="price">{priceLabel}</span>
+          <span className="muted">{p.stock} stock</span>
+        </div>
+        {p.description ? <p className="muted">{p.description}</p> : null}
+
+        <div className="panel">
+          <div className="field">
+            <label>Variante</label>
+            <select value={variantId} onChange={(e) => setVariantId(e.target.value)}>
+              {p.variants?.length ? (
+                p.variants.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.size} / {v.color} (stock: {v.stock})
+                  </option>
+                ))
+              ) : (
+                <option value="">Sin variantes</option>
+              )}
+            </select>
+          </div>
+          <div className="field">
+            <label>Cantidad</label>
+            <input type="number" min="1" max="50" value={qty} onChange={(e) => setQty(e.target.value)} />
+          </div>
+          <div className="row">
+            <button className="btn" onClick={addToCart} disabled={!p.variants?.length}>
+              Agregar al carrito
+            </button>
+            {!token ? (
+              <Link className="btn ghost" to="/login">
+                Entrar
+              </Link>
+            ) : null}
+          </div>
+          {msg ? <div className="ok">{msg}</div> : null}
+          {error ? <div className="danger">{error}</div> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
