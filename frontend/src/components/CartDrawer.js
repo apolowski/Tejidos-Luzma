@@ -39,8 +39,10 @@ export default function CartDrawer({ open, onClose }) {
   }
 
   useEffect(() => {
-    if (open) load();
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (open && token) {
+      load();
+    }
+  }, [open, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 

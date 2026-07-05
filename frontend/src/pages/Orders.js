@@ -22,8 +22,10 @@ export default function Orders() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (token) {
+      load();
+    }
+  }, [token]);
 
   if (loading) return <div className="panel muted">Cargando...</div>;
   if (error) return <div className="panel danger">{error}</div>;

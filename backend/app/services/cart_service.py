@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Lógica para manejar el carrito del usuario.
+
+Este archivo permite ver los productos agregados, sumarlos y quitarlos del carrito.
+"""
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -11,6 +16,7 @@ from app.models.user import User
 
 
 def get_or_create_cart(db: Session, *, user: User) -> Cart:
+    # Obtener el carrito del usuario o crear uno si todavía no existe.
     cart = db.execute(select(Cart).where(Cart.user_id == user.id)).scalar_one_or_none()
     if cart:
         return cart
@@ -21,6 +27,7 @@ def get_or_create_cart(db: Session, *, user: User) -> Cart:
 
 
 def get_cart_details(db: Session, *, user: User) -> dict:
+    # Construir la información completa del carrito para enviarla al frontend.
     cart = get_or_create_cart(db, user=user)
     stmt = (
         select(CartItem)
@@ -54,6 +61,7 @@ def get_cart_details(db: Session, *, user: User) -> dict:
 
 
 def add_to_cart(db: Session, *, user: User, product_variant_id: int, quantity: int) -> dict:
+    # Agregar una variante al carrito y validar que haya stock suficiente.
     cart = get_or_create_cart(db, user=user)
     variant = db.get(ProductVariant, product_variant_id)
     if not variant:
@@ -81,6 +89,7 @@ def add_to_cart(db: Session, *, user: User, product_variant_id: int, quantity: i
 
 
 def remove_from_cart(db: Session, *, user: User, product_variant_id: int) -> dict:
+    # Quitar un producto del carrito por su variante.
     cart = get_or_create_cart(db, user=user)
     item = db.execute(
         select(CartItem).where(CartItem.cart_id == cart.id, CartItem.product_variant_id == product_variant_id)
@@ -92,6 +101,7 @@ def remove_from_cart(db: Session, *, user: User, product_variant_id: int) -> dic
 
 
 def clear_cart(db: Session, *, cart_id: int) -> None:
+    # Vaciar todos los items del carrito.
     db.query(CartItem).filter(CartItem.cart_id == cart_id).delete()
     db.flush()
 

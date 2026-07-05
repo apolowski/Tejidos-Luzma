@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import CartItem from "../components/CartItem";
 
 export default function Cart() {
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { token } = useAuth();
   const navigate = useNavigate();
 
   const subtotalLabel = useMemo(() => {
@@ -47,8 +49,10 @@ export default function Cart() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (token) {
+      load();
+    }
+  }, [token]);
 
   if (loading) return <div className="panel muted">Cargando...</div>;
   if (error) return <div className="panel danger">{error}</div>;

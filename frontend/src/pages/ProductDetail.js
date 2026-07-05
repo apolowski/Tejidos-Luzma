@@ -5,7 +5,7 @@ import { api } from "../services/api";
 
 export default function ProductDetail({ ui }) {
   const { id } = useParams();
-  const { token } = useAuth();
+  const { token, createGuestSession } = useAuth();
   const [p, setP] = useState(null);
   const [variantId, setVariantId] = useState("");
   const [qty, setQty] = useState(1);
@@ -17,6 +17,15 @@ export default function ProductDetail({ ui }) {
     const v = p?.price || 0;
     return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(v);
   }, [p]);
+
+  const selectedVariant = useMemo(
+    () => p?.variants?.find((variant) => String(variant.id) === variantId),
+    [p, variantId]
+  );
+
+  const canAddToCart = Boolean(
+    (selectedVariant && selectedVariant.stock > 0) || (!selectedVariant && p?.stock > 0)
+  );
 
   async function load() {
     setLoading(true);
@@ -37,20 +46,31 @@ export default function ProductDetail({ ui }) {
   async function addToCart() {
     setMsg("");
     setError("");
-    if (!token) {
-      setError("Inicia sesión para comprar.");
-      return;
-    }
-    if (!variantId) {
-      setError("Selecciona una variante.");
+    if (!variantId && !p?.id) {
+      setError("No hay variante disponible.");
       return;
     }
     try {
-      await api.post("/cart/add", { product_variant_id: Number(variantId), quantity: Number(qty) });
+      let activeToken = token;
+      if (!activeToken) {
+        activeToken = await createGuestSession();
+        if (!activeToken) {
+          throw new Error("No se pudo autenticar como invitado.");
+        }
+      }
+      const payload = {
+        quantity: Number(qty),
+      };
+      if (variantId) {
+        payload.product_variant_id = Number(variantId);
+      } else {
+        payload.product_id = Number(id);
+      }
+      await api.post("/cart/add", payload);
       ui?.setCartOpen(true);
       setMsg("Agregado al carrito.");
     } catch (e) {
-      setError(e?.response?.data?.detail || "No se pudo agregar al carrito.");
+      setError(e?.response?.data?.detail || e?.message || "No se pudo agregar al carrito.");
     }
   }
 
@@ -98,7 +118,11 @@ export default function ProductDetail({ ui }) {
             <input type="number" min="1" max="50" value={qty} onChange={(e) => setQty(e.target.value)} />
           </div>
           <div className="row">
-            <button className="btn" onClick={addToCart} disabled={!p.variants?.length}>
+            <button
+              className="btn"
+              onClick={addToCart}
+              disabled={!canAddToCart || Number(qty) < 1 || (selectedVariant && Number(qty) > selectedVariant.stock)}
+            >
               Agregar al carrito
             </button>
             {!token ? (
@@ -107,6 +131,9 @@ export default function ProductDetail({ ui }) {
               </Link>
             ) : null}
           </div>
+          {selectedVariant && selectedVariant.stock <= 0 ? (
+            <div className="danger">Esta variante no tiene stock disponible.</div>
+          ) : null}
           {msg ? <div className="ok">{msg}</div> : null}
           {error ? <div className="danger">{error}</div> : null}
         </div>

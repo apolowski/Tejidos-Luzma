@@ -32,22 +32,8 @@ export default function App() {
           <Route path="/products/:id" element={<ProductDetail ui={ui} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route
-            path="/cart"
-            element={
-              <Protected>
-                <Cart />
-              </Protected>
-            }
-          />
-          <Route
-            path="/orders"
-            element={
-              <Protected>
-                <Orders />
-              </Protected>
-            }
-          />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/orders" element={<Orders />} />
           <Route
             path="/profile"
             element={

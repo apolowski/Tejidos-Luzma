@@ -18,6 +18,9 @@ export default function Home() {
   const [adminDescription, setAdminDescription] = useState("");
   const [adminPrice, setAdminPrice] = useState(0);
   const [adminCategory, setAdminCategory] = useState("");
+  const [adminVariantSize, setAdminVariantSize] = useState("");
+  const [adminVariantColor, setAdminVariantColor] = useState("");
+  const [adminVariantStock, setAdminVariantStock] = useState(1);
   const [adminImageFile, setAdminImageFile] = useState(null);
   const [adminStatus, setAdminStatus] = useState({ type: "", message: "" });
 
@@ -126,10 +129,34 @@ export default function Home() {
 
       const res = await api.post("/products", payload);
 
+      if (adminVariantSize && adminVariantColor) {
+        try {
+          await api.post(`/products/${res.data.id}/variants`, {
+            size: adminVariantSize,
+            color: adminVariantColor,
+            stock: Number(adminVariantStock) || 1,
+          });
+        } catch {
+          setAdminStatus({ type: "danger", message: "Producto creado, pero no se pudo crear la variante." });
+          setAdminName("");
+          setAdminDescription("");
+          setAdminPrice(0);
+          setAdminCategory("");
+          setAdminVariantSize("");
+          setAdminVariantColor("");
+          setAdminVariantStock(1);
+          setAdminImageFile(null);
+          e.target.reset();
+          setPage(1);
+          loadProducts(1);
+          return;
+        }
+      }
+
       if (adminImageFile) {
         const compressedImage = await compressProductImage(adminImageFile);
         const formData = new FormData();
-        formData.append("file", compressedImage);
+        formData.append("archivo", compressedImage);
         await api.post(`/products/${res.data.id}/image`, formData);
       }
 
@@ -246,6 +273,33 @@ export default function Home() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label>Talla</label>
+              <input
+                value={adminVariantSize}
+                onChange={(e) => setAdminVariantSize(e.target.value)}
+                placeholder="Única, S, M, L..."
+              />
+            </div>
+            <div className="field">
+              <label>Color</label>
+              <input
+                value={adminVariantColor}
+                onChange={(e) => setAdminVariantColor(e.target.value)}
+                placeholder="Rojo, Negro, Azul..."
+              />
+            </div>
+            <div className="field">
+              <label>Stock variante</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={adminVariantStock}
+                onChange={(e) => setAdminVariantStock(Number(e.target.value))}
+                placeholder="1"
+              />
             </div>
             <div className="field">
               <label>Imagen del producto</label>

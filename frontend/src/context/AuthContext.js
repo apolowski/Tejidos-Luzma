@@ -24,6 +24,26 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem("user");
   }, [user]);
 
+  async function createGuestSession() {
+    try {
+      const res = await api.post("/auth/guest");
+      const guestToken = res.data.token.access_token;
+      setAuthToken(guestToken);
+      setToken(guestToken);
+      setUser(res.data.user);
+      return guestToken;
+    } catch {
+      // Si falla, el cliente puede intentar de nuevo más tarde.
+      return "";
+    }
+  }
+
+  useEffect(() => {
+    if (!token) {
+      createGuestSession();
+    }
+  }, [token]);
+
   async function login(email, password) {
     const res = await api.post("/auth/login", { email, password });
     setToken(res.data.token.access_token);
@@ -45,7 +65,10 @@ export function AuthProvider({ children }) {
     setUser(updatedUser);
   }
 
-  const value = useMemo(() => ({ token, user, login, register, logout, updateUser }), [token, user]);
+  const value = useMemo(
+    () => ({ token, user, login, register, logout, updateUser, createGuestSession }),
+    [token, user]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
