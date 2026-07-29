@@ -38,14 +38,10 @@ def asegurar_categorias_por_defecto() -> None:
             return
 
         categorias = [
-            ("Camisetas", "Camisetas básicas, estampadas y urbanas."),
-            ("Camisas", "Camisas casuales, formales y manga corta."),
-            ("Pantalones", "Jeans, joggers, pantalones casuales y formales."),
-            ("Chaquetas", "Chaquetas, buzos, hoodies y prendas exteriores."),
-            ("Vestidos", "Vestidos casuales, elegantes y de temporada."),
-            ("Faldas", "Faldas cortas, largas y estilos casuales."),
-            ("Zapatos", "Tenis, botas, sandalias y calzado casual."),
-            ("Accesorios", "Gorras, bolsos, correas y complementos."),
+            ("Bolsos Tejidos", "Bolsos artesanales tejidos a mano, piezas únicas."),
+            ("Mochilas", "Mochilas tradicionales hechas a mano."),
+            ("Accesorios", "Pequeños accesorios tejidos, monederos y complementos."),
+            ("Decoración", "Artículos de decoración tejidos a mano para el hogar."),
         ]
 
         db.add_all([Category(name=name, description=description) for name, description in categorias])

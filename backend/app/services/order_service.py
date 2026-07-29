@@ -40,8 +40,8 @@ def create_order_from_cart(db: Session, *, user: User) -> Order:
         for v in db.execute(
             select(ProductVariant)
             .where(ProductVariant.id.in_(variant_ids))
-            .with_for_update()
-            .options(joinedload(ProductVariant.product))
+            .with_for_update(of=ProductVariant)
+            .options(joinedload(ProductVariant.product, innerjoin=True))
         ).scalars()
     }
 
@@ -114,3 +114,15 @@ def get_order(db: Session, *, user: User, order_id: int) -> Order | None:
     if order.user_id != user.id and str(getattr(user.role, "value", user.role)) != "admin":
         return None
     return order
+
+
+def pay_order(db: Session, *, user: User, order_id: int) -> Order:
+    order = get_order(db, user=user, order_id=order_id)
+    if not order:
+        raise ValueError("Order not found")
+    if order.status != OrderStatus.pending:
+        raise ValueError(f"Order cannot be paid because status is '{order.status}'")
+    order.status = OrderStatus.paid
+    db.add(order)
+    return order
+

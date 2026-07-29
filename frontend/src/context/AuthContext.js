@@ -3,8 +3,13 @@ import { api, setAuthToken } from "../services/api";
 
 const AuthContext = createContext(null);
 
+const initialToken = localStorage.getItem("token") || "";
+if (initialToken) {
+  setAuthToken(initialToken);
+}
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [token, setToken] = useState(initialToken);
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -18,6 +23,7 @@ export function AuthProvider({ children }) {
     if (token) localStorage.setItem("token", token);
     else localStorage.removeItem("token");
   }, [token]);
+
 
   useEffect(() => {
     if (user) localStorage.setItem("user", JSON.stringify(user));

@@ -2,21 +2,38 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 export default function ProductCard({ p }) {
+  const precioFormateado = new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0
+  }).format(p.price);
+
   return (
-    <Link to={`/products/${p.id}`} className="card">
-      <div className="cardMedia">
-        {p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" /> : <div className="placeholder">Sin imagen</div>}
-      </div>
+    <div className="card">
+      <Link to={`/products/${p.id}`} className="cardMedia">
+        {p.image_url ? (
+          <img src={p.image_url} alt={p.name} loading="lazy" />
+        ) : (
+          <div className="placeholder">Sin imagen</div>
+        )}
+      </Link>
       <div className="cardBody">
-        <div className="cardTitle">{p.name}</div>
+        <div>
+          <div className="cardCategoryName">Colección Luzma</div>
+          <Link to={`/products/${p.id}`} className="cardTitle">
+            {p.name}
+          </Link>
+        </div>
         <div className="cardMeta">
-          <span className="price">
-            {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(p.price)}
-          </span>
-          <span className="muted">{p.stock} stock</span>
+          <div>
+            <div className="price">{precioFormateado}</div>
+            <div className="stockBadge">{p.stock > 0 ? `${p.stock} disponibles` : "Agotado"}</div>
+          </div>
+          <Link to={`/products/${p.id}`} className="btn ghost" style={{ padding: "8px 14px", fontSize: "0.82rem" }}>
+            Ver detalle
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
-

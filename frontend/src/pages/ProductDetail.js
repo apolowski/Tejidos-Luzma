@@ -6,139 +6,174 @@ import { api } from "../services/api";
 export default function ProductDetail({ ui }) {
   const { id } = useParams();
   const { token, createGuestSession } = useAuth();
-  const [p, setP] = useState(null);
-  const [variantId, setVariantId] = useState("");
-  const [qty, setQty] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [producto, setProducto] = useState(null);
+  const [varianteId, setVarianteId] = useState("");
+  const [cantidad, setCantidad] = useState(1);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
+  const [mensaje, setMensaje] = useState("");
 
-  const priceLabel = useMemo(() => {
-    const v = p?.price || 0;
-    return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(v);
-  }, [p]);
+  const etiquetaPrecio = useMemo(() => {
+    const valor = producto?.price || 0;
+    return new Intl.NumberFormat("es-CO", { 
+      style: "currency", 
+      currency: "COP",
+      maximumFractionDigits: 0 
+    }).format(valor);
+  }, [producto]);
 
-  const selectedVariant = useMemo(
-    () => p?.variants?.find((variant) => String(variant.id) === variantId),
-    [p, variantId]
+  const varianteSeleccionada = useMemo(
+    () => producto?.variants?.find((variante) => String(variante.id) === varianteId),
+    [producto, varianteId]
   );
 
-  const canAddToCart = Boolean(
-    (selectedVariant && selectedVariant.stock > 0) || (!selectedVariant && p?.stock > 0)
+  const puedeAgregarAlCarrito = Boolean(
+    (varianteSeleccionada && varianteSeleccionada.stock > 0) || (!varianteSeleccionada && producto?.stock > 0)
   );
 
-  async function load() {
-    setLoading(true);
+  async function cargarProducto() {
+    setCargando(true);
     setError("");
-    setMsg("");
+    setMensaje("");
     try {
-      const res = await api.get(`/products/${id}`);
-      setP(res.data);
-      const first = res.data?.variants?.[0]?.id || "";
-      setVariantId(first ? String(first) : "");
+      const respuesta = await api.get(`/products/${id}`);
+      setProducto(respuesta.data);
+      const primeraVariante = respuesta.data?.variants?.[0]?.id || "";
+      setVarianteId(primeraVariante ? String(primeraVariante) : "");
     } catch {
       setError("No se pudo cargar el producto.");
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   }
 
-  async function addToCart() {
-    setMsg("");
+  async function agregarAlCarrito() {
+    setMensaje("");
     setError("");
-    if (!variantId && !p?.id) {
+    if (!varianteId && !producto?.id) {
       setError("No hay variante disponible.");
       return;
     }
     try {
-      let activeToken = token;
-      if (!activeToken) {
-        activeToken = await createGuestSession();
-        if (!activeToken) {
+      let tokenActivo = token;
+      if (!tokenActivo) {
+        tokenActivo = await createGuestSession();
+        if (!tokenActivo) {
           throw new Error("No se pudo autenticar como invitado.");
         }
       }
-      const payload = {
-        quantity: Number(qty),
+      const datosEnvio = {
+        quantity: Number(cantidad),
       };
-      if (variantId) {
-        payload.product_variant_id = Number(variantId);
+      if (varianteId) {
+        datosEnvio.product_variant_id = Number(varianteId);
       } else {
-        payload.product_id = Number(id);
+        datosEnvio.product_id = Number(id);
       }
-      await api.post("/cart/add", payload);
+      await api.post("/cart/add", datosEnvio);
       ui?.setCartOpen(true);
-      setMsg("Agregado al carrito.");
+      setMensaje("¡Producto agregado al carrito con éxito!");
     } catch (e) {
       setError(e?.response?.data?.detail || e?.message || "No se pudo agregar al carrito.");
     }
   }
 
   useEffect(() => {
-    load();
+    cargarProducto();
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) return <div className="panel muted">Cargando...</div>;
-  if (error) return <div className="panel danger">{error}</div>;
-  if (!p) return null;
+  if (cargando) return <div className="panel muted" style={{ textAlign: "center", padding: "60px" }}>Cargando detalle del producto...</div>;
+  if (error) return <div className="panel danger" style={{ margin: "30px 0" }}>{error}</div>;
+  if (!producto) return null;
 
   return (
     <div className="detail">
       <div className="detailMedia">
-        {p.image_url ? <img src={p.image_url} alt={p.name} /> : <div className="placeholder big">Sin imagen</div>}
+        {producto.image_url ? (
+          <img src={producto.image_url} alt={producto.name} />
+        ) : (
+          <div className="placeholder big" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--atenuado)" }}>
+            Sin imagen disponible
+          </div>
+        )}
       </div>
-      <div className="detailBody">
-        <Link to="/" className="muted">
-          ← Volver
-        </Link>
-        <h2>{p.name}</h2>
-        <div className="detailMeta">
-          <span className="price">{priceLabel}</span>
-          <span className="muted">{p.stock} stock</span>
-        </div>
-        {p.description ? <p className="muted">{p.description}</p> : null}
 
-        <div className="panel">
-          <div className="field">
-            <label>Variante</label>
-            <select value={variantId} onChange={(e) => setVariantId(e.target.value)}>
-              {p.variants?.length ? (
-                p.variants.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.size} / {v.color} (stock: {v.stock})
-                  </option>
-                ))
-              ) : (
-                <option value="">Sin variantes</option>
-              )}
-            </select>
+      <div className="detailBody">
+        <Link to="/" className="btn ghost" style={{ alignSelf: "flex-start", padding: "8px 16px", fontSize: "0.85rem" }}>
+          ← Volver al catálogo
+        </Link>
+
+        <div>
+          <div className="cardCategoryName" style={{ fontSize: "0.85rem", marginBottom: "6px" }}>
+            Colección Artesanal Luzma
           </div>
-          <div className="field">
-            <label>Cantidad</label>
-            <input type="number" min="1" max="50" value={qty} onChange={(e) => setQty(e.target.value)} />
+          <h1 style={{ fontFamily: "var(--fuente-titulo)", fontSize: "2.2rem", fontWeight: 800, color: "var(--texto-oscuro)", lineHeight: 1.2 }}>
+            {producto.name}
+          </h1>
+        </div>
+
+        <div className="detailMeta">
+          <span className="price">{etiquetaPrecio}</span>
+          <span className="stockBadge">
+            {producto.stock > 0 ? `Stock disponible: ${producto.stock}` : "Agotado"}
+          </span>
+        </div>
+
+        {producto.description && (
+          <p style={{ color: "var(--atenuado)", fontSize: "1rem", lineHeight: 1.6, background: "rgba(255,255,255,0.6)", padding: "16px", borderRadius: "12px", border: "1px solid var(--linea)" }}>
+            {producto.description}
+          </p>
+        )}
+
+        <div className="panel" style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          <h3 style={{ fontFamily: "var(--fuente-titulo)", fontSize: "1.1rem", fontWeight: 700 }}>Opciones de compra</h3>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div className="field">
+              <label>Variante / Color</label>
+              <select value={varianteId} onChange={(e) => setVarianteId(e.target.value)}>
+                {producto.variants?.length ? (
+                  producto.variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.size} / {v.color} (stock: {v.stock})
+                    </option>
+                  ))
+                ) : (
+                  <option value="">Única / Estándar</option>
+                )}
+              </select>
+            </div>
+
+            <div className="field">
+              <label>Cantidad</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="50" 
+                value={cantidad} 
+                onChange={(e) => setCantidad(e.target.value)} 
+              />
+            </div>
           </div>
-          <div className="row">
+
+          <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
             <button
-              className="btn"
-              onClick={addToCart}
-              disabled={!canAddToCart || Number(qty) < 1 || (selectedVariant && Number(qty) > selectedVariant.stock)}
+              className="btn primary"
+              onClick={agregarAlCarrito}
+              disabled={!puedeAgregarAlCarrito || Number(cantidad) < 1 || (varianteSeleccionada && Number(cantidad) > varianteSeleccionada.stock)}
+              style={{ flex: 1, padding: "14px 24px" }}
             >
-              Agregar al carrito
+              🛒 Agregar al Carrito
             </button>
-            {!token ? (
-              <Link className="btn ghost" to="/login">
-                Entrar
-              </Link>
-            ) : null}
           </div>
-          {selectedVariant && selectedVariant.stock <= 0 ? (
-            <div className="danger">Esta variante no tiene stock disponible.</div>
-          ) : null}
-          {msg ? <div className="ok">{msg}</div> : null}
-          {error ? <div className="danger">{error}</div> : null}
+
+          {varianteSeleccionada && varianteSeleccionada.stock <= 0 && (
+            <div className="danger" style={{ fontSize: "0.9rem" }}>Esta variante no tiene stock disponible.</div>
+          )}
+          {mensaje && <div className="ok" style={{ fontWeight: 600 }}>{mensaje}</div>}
+          {error && <div className="danger">{error}</div>}
         </div>
       </div>
     </div>
   );
 }
-

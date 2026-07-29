@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.dependencies.auth import get_current_user
 from app.schemas.order_schema import OrderCreateOut, OrderOut
-from app.services.order_service import create_order_from_cart, get_order, list_orders
+from app.services.order_service import create_order_from_cart, get_order, list_orders, pay_order
 
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -45,4 +45,21 @@ def ver_pedido(order_id: int, db: Session = Depends(get_db), usuario=Depends(get
     if not pedido:
         raise HTTPException(status_code=404, detail="Order not found")
     return OrderOut.model_validate(pedido)
+
+
+@router.post("/{order_id}/pay", response_model=OrderOut)
+def pagar_pedido(order_id: int, db: Session = Depends(get_db), usuario=Depends(get_current_user)) -> OrderOut:
+    # Simular el pago de una orden existente
+    try:
+        pedido = pay_order(db, user=usuario, order_id=order_id)
+        db.commit()
+        db.refresh(pedido)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:
+        db.rollback()
+        raise
+    return OrderOut.model_validate(pedido)
+
 

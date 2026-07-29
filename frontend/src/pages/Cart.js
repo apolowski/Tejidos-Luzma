@@ -76,7 +76,7 @@ export default function Cart() {
           <strong>{subtotalLabel}</strong>
         </div>
         <button className="btn" onClick={checkout} disabled={!cart?.items?.length}>
-          Crear pedido (pago simulado)
+          Crear pedido
         </button>
       </div>
     </div>

@@ -4,54 +4,116 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
   const { register } = useAuth();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [clave, setClave] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [cargando, setCargando] = useState(false);
+  const navegacion = useNavigate();
 
-  async function onSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
+  async function handleRegistro(evento) {
+    evento.preventDefault();
+    setCargando(true);
     setError("");
     try {
-      await register(name, email, password);
-      navigate("/");
-    } catch (e2) {
-      setError(e2?.response?.data?.detail || "No se pudo crear la cuenta.");
+      await register(nombre, correo, clave);
+      navegacion("/");
+    } catch (err) {
+      setError(err?.response?.data?.detail || "No se pudo crear la cuenta. Intente nuevamente.");
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   }
 
   return (
-    <div className="auth">
-      <div className="panel authCard">
-        <h2>Crear cuenta</h2>
-        <form className="stack" onSubmit={onSubmit}>
-          <div className="field">
-            <label>Nombre</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
+    <div className="authWrapper">
+      <div className="authCard">
+        {/* LADO HERO CON MARCA Y DETALLES */}
+        <div className="authHeroSide">
+          <div className="authHeroContent">
+            <img src="/images/logo/logo.jpeg" alt="Luzma Tejidos Logo" className="authHeroLogo" />
+            <h2 className="authHeroTitle">Únete a Luzma Tejidos</h2>
+            <p className="authHeroDesc">
+              Crea tu cuenta para guardar tus bolsos favoritos, rastrear tus pedidos y recibir ofertas artesanales exclusivas.
+            </p>
+
+            <div className="authHeroFeatures">
+              <div className="authHeroFeatureItem">
+                <span>🧶</span> Catálogo de Edición Limitada
+              </div>
+              <div className="authHeroFeatureItem">
+                <span>🛍️</span> Proceso de Compra Rápido & Seguro
+              </div>
+              <div className="authHeroFeatureItem">
+                <span>💬</span> Atención Directa por WhatsApp
+              </div>
+            </div>
           </div>
-          <div className="field">
-            <label>Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
+
+          <div style={{ fontSize: "0.78rem", color: "rgba(247, 238, 223, 0.5)", marginTop: "20px" }}>
+            © 2026 Luzma Tejidos • Artesanía Colombiana 🇨🇴
           </div>
-          <div className="field">
-            <label>Contraseña</label>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" minLength={8} required />
-          </div>
-          <button className="btn" disabled={loading}>
-            {loading ? "Creando..." : "Crear"}
-          </button>
-          {error ? <div className="danger">{error}</div> : null}
-        </form>
-        <p className="muted">
-          ¿Ya tienes cuenta? <Link to="/login">Entrar</Link>
-        </p>
+        </div>
+
+        {/* LADO FORMULARIO */}
+        <div className="authFormSide">
+          <h1 className="authTitle">Crear Cuenta</h1>
+          <p className="authSub">Diligencia tus datos para registrarte en la tienda.</p>
+
+          <form className="stack" onSubmit={handleRegistro}>
+            <div className="field">
+              <label>Nombre Completo *</label>
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="María Perez"
+                required
+              />
+            </div>
+
+            <div className="field">
+              <label>Correo Electrónico *</label>
+              <input
+                type="email"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                placeholder="maria@ejemplo.com"
+                required
+              />
+            </div>
+
+            <div className="field">
+              <label>Contraseña (Mínimo 8 caracteres) *</label>
+              <input
+                type="password"
+                value={clave}
+                onChange={(e) => setClave(e.target.value)}
+                placeholder="••••••••"
+                minLength={8}
+                required
+              />
+            </div>
+
+            <button className="btn primary" disabled={cargando} style={{ width: "100%", padding: "14px", marginTop: "10px" }}>
+              {cargando ? "Creando Cuenta..." : "Registrarme →"}
+            </button>
+
+            {error && (
+              <div className="panel danger" style={{ padding: "12px 16px", fontSize: "0.88rem" }}>
+                {error}
+              </div>
+            )}
+          </form>
+
+          <p className="muted" style={{ marginTop: "24px", textAlign: "center", fontSize: "0.9rem" }}>
+            ¿Ya tienes una cuenta registrada?{" "}
+            <Link to="/login" style={{ color: "var(--acento-hover)", fontWeight: 700 }}>
+              Inicia sesión aquí
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-

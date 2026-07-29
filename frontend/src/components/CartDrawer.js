@@ -6,41 +6,41 @@ import CartItem from "./CartItem";
 
 export default function CartDrawer({ open, onClose }) {
   const { token } = useAuth();
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [carrito, setCarrito] = useState(null);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
 
-  const subtotalLabel = useMemo(() => {
-    const v = cart?.subtotal || 0;
-    return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(v);
-  }, [cart]);
+  const etiquetaSubtotal = useMemo(() => {
+    const valor = carrito?.subtotal || 0;
+    return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP" }).format(valor);
+  }, [carrito]);
 
-  async function load() {
+  async function cargarCarrito() {
     if (!token) return;
-    setLoading(true);
+    setCargando(true);
     setError("");
     try {
-      const res = await api.get("/cart");
-      setCart(res.data);
+      const respuesta = await api.get("/cart");
+      setCarrito(respuesta.data);
     } catch {
       setError("No se pudo cargar el carrito.");
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   }
 
-  async function remove(variantId) {
+  async function eliminarElemento(varianteId) {
     try {
-      const res = await api.delete("/cart/remove", { data: { product_variant_id: variantId } });
-      setCart(res.data);
+      const respuesta = await api.delete("/cart/remove", { data: { product_variant_id: varianteId } });
+      setCarrito(respuesta.data);
     } catch {
-      setError("No se pudo eliminar el item.");
+      setError("No se pudo eliminar el elemento.");
     }
   }
 
   useEffect(() => {
     if (open && token) {
-      load();
+      cargarCarrito();
     }
   }, [open, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -63,25 +63,31 @@ export default function CartDrawer({ open, onClose }) {
               Entrar
             </Link>
           </div>
-        ) : loading ? (
+        ) : cargando ? (
           <div className="panel muted">Cargando...</div>
         ) : error ? (
           <div className="panel danger">{error}</div>
         ) : (
           <>
             <div className="drawerBody">
-              {cart?.items?.length ? cart.items.map((it) => <CartItem key={it.id} item={it} onRemove={remove} />) : <div className="panel muted">Tu carrito está vacío.</div>}
+              {carrito?.items?.length ? (
+                carrito.items.map((elemento) => (
+                  <CartItem key={elemento.id} item={elemento} onRemove={eliminarElemento} />
+                ))
+              ) : (
+                <div className="panel muted">Tu carrito está vacío.</div>
+              )}
             </div>
             <div className="drawerFooter">
               <div className="row">
                 <span className="muted">Subtotal</span>
-                <strong>{subtotalLabel}</strong>
+                <strong>{etiquetaSubtotal}</strong>
               </div>
               <div className="row">
                 <Link className="btn ghost" to="/cart" onClick={onClose}>
                   Ver carrito
                 </Link>
-                <button className="btn" onClick={onClose} disabled={!cart?.items?.length}>
+                <button className="btn" onClick={onClose} disabled={!carrito?.items?.length}>
                   Continuar
                 </button>
               </div>
@@ -92,4 +98,3 @@ export default function CartDrawer({ open, onClose }) {
     </div>
   );
 }
-

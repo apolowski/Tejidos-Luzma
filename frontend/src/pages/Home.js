@@ -5,229 +5,231 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const { user } = useAuth();
-  const [categories, setCategories] = useState([]);
-  const [items, setItems] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [productos, setProductos] = useState([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(12);
-  const [q, setQ] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const [tamanoPagina] = useState(8);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
-  const [adminName, setAdminName] = useState("");
-  const [adminDescription, setAdminDescription] = useState("");
-  const [adminPrice, setAdminPrice] = useState(0);
-  const [adminCategory, setAdminCategory] = useState("");
-  const [adminVariantSize, setAdminVariantSize] = useState("");
-  const [adminVariantColor, setAdminVariantColor] = useState("");
-  const [adminVariantStock, setAdminVariantStock] = useState(1);
-  const [adminImageFile, setAdminImageFile] = useState(null);
-  const [adminStatus, setAdminStatus] = useState({ type: "", message: "" });
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
+  // Estados del Formulario de Administración
+  const [adminNombre, setAdminNombre] = useState("");
+  const [adminDescripcion, setAdminDescripcion] = useState("");
+  const [adminPrecio, setAdminPrecio] = useState(0);
+  const [adminCategoria, setAdminCategoria] = useState("");
+  const [adminVarianteTalla, setAdminVarianteTalla] = useState("");
+  const [adminVarianteColor, setAdminVarianteColor] = useState("");
+  const [adminVarianteStock, setAdminVarianteStock] = useState(1);
+  const [adminArchivoImagen, setAdminArchivoImagen] = useState(null);
+  const [adminEstado, setAdminEstado] = useState({ tipo: "", mensaje: "" });
 
-  async function loadCategories() {
+  const totalPaginas = useMemo(() => Math.max(1, Math.ceil(total / tamanoPagina)), [total, tamanoPagina]);
+
+  async function cargarCategorias() {
     try {
-      const res = await api.get("/categories");
-      setCategories(res.data);
+      const respuesta = await api.get("/categories");
+      const bolsosTejidos = (respuesta.data || []).filter(
+        (c) => c.name.toLowerCase().trim() === "bolsos tejidos"
+      );
+      setCategorias(bolsosTejidos.length ? bolsosTejidos : (respuesta.data || []).slice(0, 1));
     } catch {
-      // ignore
+      // ignorar
     }
   }
 
-  async function loadProducts(nextPage = page) {
-    setLoading(true);
+  async function cargarProductos(siguientePagina = pagina, catId = categoriaId, qVal = busqueda) {
+    setCargando(true);
     setError("");
     try {
-      const params = { page: nextPage, page_size: pageSize };
-      if (q.trim()) params.q = q.trim();
-      if (categoryId) params.category_id = Number(categoryId);
-      const res = await api.get("/products", { params });
-      setItems(res.data.items || []);
-      setTotal(res.data.total || 0);
+      const parametros = { page: siguientePagina, page_size: tamanoPagina };
+      const qClean = (qVal !== undefined ? qVal : busqueda).trim();
+      const targetCatId = catId !== undefined ? catId : categoriaId;
+
+      if (qClean) parametros.q = qClean;
+      if (targetCatId) parametros.category_id = Number(targetCatId);
+
+      const respuesta = await api.get("/products", { params: parametros });
+      setProductos(respuesta.data.items || []);
+      setTotal(respuesta.data.total || 0);
     } catch {
       setError("No se pudieron cargar los productos.");
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   }
 
   useEffect(() => {
-    loadCategories();
+    cargarCategorias();
   }, []);
 
   useEffect(() => {
-    loadProducts(page);
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+    cargarProductos(pagina);
+  }, [pagina]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function compressProductImage(file) {
-    return new Promise((resolve) => {
-      if (!file || !file.type.startsWith("image/")) {
-        resolve(file);
+  function comprimirImagenProducto(archivo) {
+    return new Promise((resolver) => {
+      if (!archivo || !archivo.type.startsWith("image/")) {
+        resolver(archivo);
         return;
       }
 
-      const image = new Image();
-      const objectUrl = URL.createObjectURL(file);
+      const imagen = new Image();
+      const urlObjeto = URL.createObjectURL(archivo);
 
-      image.onload = () => {
-        const maxSize = 1200;
-        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-        const width = Math.max(1, Math.round(image.width * scale));
-        const height = Math.max(1, Math.round(image.height * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
+      imagen.onload = () => {
+        const tamanoMaximo = 1200;
+        const escala = Math.min(1, tamanoMaximo / Math.max(imagen.width, imagen.height));
+        const ancho = Math.max(1, Math.round(imagen.width * escala));
+        const alto = Math.max(1, Math.round(imagen.height * escala));
+        const lienzo = document.createElement("canvas");
+        lienzo.width = ancho;
+        lienzo.height = alto;
 
-        const context = canvas.getContext("2d");
-        if (!context) {
-          URL.revokeObjectURL(objectUrl);
-          resolve(file);
+        const contexto = lienzo.getContext("2d");
+        if (!contexto) {
+          URL.revokeObjectURL(urlObjeto);
+          resolver(archivo);
           return;
         }
 
-        context.drawImage(image, 0, 0, width, height);
-        canvas.toBlob(
+        contexto.drawImage(imagen, 0, 0, ancho, alto);
+        lienzo.toBlob(
           (blob) => {
-            URL.revokeObjectURL(objectUrl);
+            URL.revokeObjectURL(urlObjeto);
             if (!blob) {
-              resolve(file);
+              resolver(archivo);
               return;
             }
 
-            const filename = file.name.replace(/\.[^.]+$/, "") || "producto";
-            resolve(new File([blob], `${filename}.webp`, { type: "image/webp" }));
+            const nombreArchivo = archivo.name.replace(/\.[^.]+$/, "") || "producto";
+            resolver(new File([blob], `${nombreArchivo}.webp`, { type: "image/webp" }));
           },
           "image/webp",
-          0.78
+          0.82
         );
       };
 
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve(file);
+      imagen.onerror = () => {
+        URL.revokeObjectURL(urlObjeto);
+        resolver(archivo);
       };
 
-      image.src = objectUrl;
+      imagen.src = urlObjeto;
     });
   }
 
-  async function handleCreateProduct(e) {
-    e.preventDefault();
-    if (!adminName || !adminPrice || !adminCategory) {
-      setAdminStatus({ type: "danger", message: "Completa el nombre, precio y categoría." });
+  async function handleCrearProducto(evento) {
+    evento.preventDefault();
+    setAdminEstado({ tipo: "", mensaje: "" });
+    if (!adminNombre.trim() || !adminPrecio || !adminCategoria) {
+      setAdminEstado({ tipo: "danger", mensaje: "Completa los campos obligatorios." });
       return;
     }
 
     try {
-      const payload = {
-        name: adminName,
-        description: adminDescription,
-        price: Number(adminPrice),
-        category_id: Number(adminCategory),
-      };
+      const respuesta = await api.post("/products", {
+        name: adminNombre.trim(),
+        description: adminDescripcion.trim() || null,
+        price: Number(adminPrecio),
+        category_id: Number(adminCategoria),
+      });
 
-      const res = await api.post("/products", payload);
-
-      if (adminVariantSize && adminVariantColor) {
-        try {
-          await api.post(`/products/${res.data.id}/variants`, {
-            size: adminVariantSize,
-            color: adminVariantColor,
-            stock: Number(adminVariantStock) || 1,
-          });
-        } catch {
-          setAdminStatus({ type: "danger", message: "Producto creado, pero no se pudo crear la variante." });
-          setAdminName("");
-          setAdminDescription("");
-          setAdminPrice(0);
-          setAdminCategory("");
-          setAdminVariantSize("");
-          setAdminVariantColor("");
-          setAdminVariantStock(1);
-          setAdminImageFile(null);
-          e.target.reset();
-          setPage(1);
-          loadProducts(1);
-          return;
-        }
+      if (adminVarianteTalla || adminVarianteColor) {
+        await api.post(`/products/${respuesta.data.id}/variants`, {
+          size: adminVarianteTalla.trim() || "Única",
+          color: adminVarianteColor.trim() || "Multicolor",
+          stock: Number(adminVarianteStock) || 0,
+        });
       }
 
-      if (adminImageFile) {
-        const compressedImage = await compressProductImage(adminImageFile);
-        const formData = new FormData();
-        formData.append("archivo", compressedImage);
-        await api.post(`/products/${res.data.id}/image`, formData);
+      if (adminArchivoImagen) {
+        const imagenComprimida = await comprimirImagenProducto(adminArchivoImagen);
+        const datosFormulario = new FormData();
+        datosFormulario.append("archivo", imagenComprimida);
+        await api.post(`/products/${respuesta.data.id}/image`, datosFormulario);
       }
 
-      setAdminStatus({ type: "ok", message: "Producto creado exitosamente." });
-      setAdminName("");
-      setAdminDescription("");
-      setAdminPrice(0);
-      setAdminCategory("");
-      setAdminImageFile(null);
-      e.target.reset();
-      setPage(1);
-      loadProducts(1);
+      setAdminEstado({ tipo: "ok", mensaje: "¡Producto creado con éxito!" });
+      setAdminNombre("");
+      setAdminDescripcion("");
+      setAdminPrecio(0);
+      setAdminCategoria("");
+      setAdminVarianteTalla("");
+      setAdminVarianteColor("");
+      setAdminVarianteStock(1);
+      setAdminArchivoImagen(null);
+      cargarProductos(1);
     } catch (err) {
-      setAdminStatus({ type: "danger", message: "No se pudo crear el producto." });
+      const mensaje = err.response?.data?.detail || "Error al crear el producto.";
+      setAdminEstado({ tipo: "danger", mensaje: mensaje });
     }
   }
 
-  function applyFilters(e) {
-    e.preventDefault();
-    setPage(1);
-    loadProducts(1);
+  function aplicarFiltros(evento) {
+    if (evento && evento.preventDefault) evento.preventDefault();
+    setPagina(1);
+    cargarProductos(1, categoriaId, busqueda);
   }
 
   return (
-    <div className="homePage stack">
+    <div className="stack">
+      {/* HERO BANNER */}
       <section className="homeHero">
         <div className="heroOverlay" />
-        <div className="container heroContent">
-          <div className="heroTopNav">
-            <span className="heroTag">NIGHT SALE 🔥</span>
-            <button className="heroCTA" type="button">
-              Ver todo
-            </button>
-          </div>
-          <div className="heroCopy">
-            <span className="eyebrow">Tienda pastel</span>
-            <h1>Legacy de estilo y color en cada look.</h1>
-            <p className="heroText">
-              Descubre prendas con actitud suave, banner llamativo y un catálogo moderno para tu tienda.
+        <div className="heroInner">
+          <div className="heroContent">
+            <div className="heroBadge">
+              ✨ NUEVA COLECCIÓN 2026 <span>•</span> EDICIÓN ARTESANAL
+            </div>
+            <h1 className="heroTitle">
+              Calidez, Estilo & Tradición en Cada Tejido
+            </h1>
+            <p className="heroSub">
+              Descubre bolsos, mochilas y piezas únicas tejidas a mano por artesanas colombianas.
+              Diseños auténticos hechos con pasión y materiales de la mejor calidad.
             </p>
             <div className="heroActions">
-              <button className="btn" type="button" onClick={() => document.getElementById("searchInput")?.focus()}>
-                Comprar ahora
+              <button
+                className="btn primary"
+                type="button"
+                onClick={() => {
+                  const elemento = document.getElementById("seccionCatalogo");
+                  elemento?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                Explorar Catálogo
               </button>
               <button
                 className="btn ghost"
                 type="button"
                 onClick={() => {
-                  setQ("");
-                  setCategoryId("");
-                  setPage(1);
-                  loadProducts(1);
+                  setBusqueda("");
+                  setCategoriaId("");
+                  setPagina(1);
+                  cargarProductos(1, "", "");
                 }}
               >
-                Explorar catálogo
+                Ver Colecciones
               </button>
             </div>
           </div>
+
           <div className="heroVisual">
             <div className="heroCard">
-              <span className="eyebrow">Destacados</span>
-              <h2>Prendas de temporada</h2>
-              <p>La mejor selección para quienes buscan calidad, color y un estilo urbano suave.</p>
+              <span className="eyebrow">Destacados de la Semana</span>
+              <h2>Bolsos & Tejidos Únicos</h2>
+              <p>Cada prenda y bolso cuenta una historia tejida con hilo, color y dedicación.</p>
               <div className="heroStats">
                 <div>
                   <strong>+120</strong>
-                  <span>Productos</span>
+                  <span>Diseños Artesanales</span>
                 </div>
                 <div>
-                  <strong>Envío rápido</strong>
-                  <span>48 horas</span>
+                  <strong>Envío Seguro</strong>
+                  <span>Toda Colombia</span>
                 </div>
               </div>
             </div>
@@ -235,190 +237,258 @@ export default function Home() {
         </div>
       </section>
 
-      {user?.role === "admin" ? (
-        <section className="panel adminSection">
-          <div className="adminHeader">
-            <div>
-              <h2>Panel administrador</h2>
-              <p>Crea productos rápidos para la tienda desde aquí.</p>
+      {/* CATEGORY SHOWCASE GRID */}
+      <section className="categoryShowcase">
+        <div 
+          className="catCard" 
+          onClick={() => { setCategoriaId(""); setPagina(1); cargarProductos(1, "", ""); }}
+        >
+          <img src="/images/hero/hero-bg.jpeg" alt="Bolsos Tejidos" className="catCardImg" />
+          <div className="catCardContent">
+            <div className="catCardTag">Colección Principal</div>
+            <div className="catCardTitle">Bolsos & Mochilas →</div>
+          </div>
+        </div>
+
+        {categorias.slice(0, 3).map((categoria, indice) => (
+          <div 
+            key={categoria.id} 
+            className="catCard"
+            onClick={() => { setCategoriaId(String(categoria.id)); setPagina(1); cargarProductos(1, String(categoria.id)); }}
+          >
+            <img 
+              src={`/images/products/WhatsApp Image 2026-07-25 at 09.59.1${indice + 1}.jpeg`} 
+              alt={categoria.name} 
+              className="catCardImg" 
+            />
+            <div className="catCardContent">
+              <div className="catCardTag">Categoría Destacada</div>
+              <div className="catCardTitle">{categoria.name} →</div>
             </div>
           </div>
-          <form className="adminForm" onSubmit={handleCreateProduct}>
-            <div className="field">
-              <label>Nombre</label>
-              <input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="Nombre del producto" />
+        ))}
+      </section>
+
+      {/* PANEL ADMIN (Si el usuario es Admin) */}
+      {user?.role === "admin" ? (
+        <section className="panel adminSection" style={{ marginBottom: "30px" }}>
+          <div className="adminHeader" style={{ marginBottom: "20px" }}>
+            <h2>Panel Administrador</h2>
+            <p className="muted">Crea productos nuevos para el catálogo.</p>
+          </div>
+          <form className="adminForm" onSubmit={handleCrearProducto}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+              <div className="field">
+                <label>Nombre del producto</label>
+                <input value={adminNombre} onChange={(e) => setAdminNombre(e.target.value)} placeholder="Ej: Bolso Guajiro Especial" />
+              </div>
+              <div className="field">
+                <label>Descripción</label>
+                <input value={adminDescripcion} onChange={(e) => setAdminDescripcion(e.target.value)} placeholder="Detalles de la prenda" />
+              </div>
+              <div className="field">
+                <label>Precio (COP)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={adminPrecio}
+                  onChange={(e) => setAdminPrecio(e.target.value)}
+                  placeholder="85000"
+                />
+              </div>
+              <div className="field">
+                <label>Categoría</label>
+                <select value={adminCategoria} onChange={(e) => setAdminCategoria(e.target.value)}>
+                  <option value="">Selecciona categoría</option>
+                  {categorias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="field">
-              <label>Descripción</label>
-              <input value={adminDescription} onChange={(e) => setAdminDescription(e.target.value)} placeholder="Descripción breve" />
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginTop: "14px" }}>
+              <div className="field">
+                <label>Talla</label>
+                <input value={adminVarianteTalla} onChange={(e) => setAdminVarianteTalla(e.target.value)} placeholder="Única, S, M..." />
+              </div>
+              <div className="field">
+                <label>Color</label>
+                <input value={adminVarianteColor} onChange={(e) => setAdminVarianteColor(e.target.value)} placeholder="Multicolor, Beige..." />
+              </div>
+              <div className="field">
+                <label>Stock</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={adminVarianteStock}
+                  onChange={(e) => setAdminVarianteStock(Number(e.target.value))}
+                />
+              </div>
+              <div className="field">
+                <label>Imagen</label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => setAdminArchivoImagen(e.target.files?.[0] || null)}
+                />
+              </div>
             </div>
-            <div className="field">
-              <label>Precio</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={adminPrice}
-                onChange={(e) => setAdminPrice(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="field">
-              <label>Categoría</label>
-              <select value={adminCategory} onChange={(e) => setAdminCategory(e.target.value)}>
-                <option value="">Selecciona categoría</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>Talla</label>
-              <input
-                value={adminVariantSize}
-                onChange={(e) => setAdminVariantSize(e.target.value)}
-                placeholder="Única, S, M, L..."
-              />
-            </div>
-            <div className="field">
-              <label>Color</label>
-              <input
-                value={adminVariantColor}
-                onChange={(e) => setAdminVariantColor(e.target.value)}
-                placeholder="Rojo, Negro, Azul..."
-              />
-            </div>
-            <div className="field">
-              <label>Stock variante</label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={adminVariantStock}
-                onChange={(e) => setAdminVariantStock(Number(e.target.value))}
-                placeholder="1"
-              />
-            </div>
-            <div className="field">
-              <label>Imagen del producto</label>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => setAdminImageFile(e.target.files?.[0] || null)}
-              />
-              <small className="fieldHint">Se optimiza antes de subirla. En la base solo se guarda la URL.</small>
-            </div>
-            <div className="field actions adminActions">
-              <button className="btn" type="submit">
-                Crear producto
+
+            <div style={{ marginTop: "20px" }}>
+              <button className="btn primary" type="submit">
+                + Crear Producto
               </button>
             </div>
-            {adminStatus.message ? (
-              <div className={`panel ${adminStatus.type}`}>{adminStatus.message}</div>
+            {adminEstado.mensaje ? (
+              <div className={`panel ${adminEstado.tipo}`} style={{ marginTop: "14px", padding: "12px 18px" }}>
+                {adminEstado.mensaje}
+              </div>
             ) : null}
           </form>
         </section>
       ) : null}
 
-      <section className="shopIntro">
-        <div className="container shopIntroInner">
-          <div>
-            <h2>Nuestro catálogo</h2>
-            <p>Una galería con prendas suaves, combinaciones versátiles y precios claros.</p>
+      {/* TOOLBAR Y FILTROS */}
+      <div id="seccionCatalogo" className="sectionHeader">
+        <div>
+          <h2>Nuestro Catálogo</h2>
+          <p>Explora nuestras piezas artesanales hechas con amor y tradición colombiana.</p>
+        </div>
+        <div className="muted" style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+          Mostrando {total} productos
+        </div>
+      </div>
+
+      <section className="catalogToolbar">
+        <div className="filterHeader">
+          <form className="searchBox" onSubmit={aplicarFiltros}>
+            <span className="searchIcon">🔍</span>
+            <input
+              id="searchInput"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por bolso, mochila, tejido, accesorios..."
+            />
+          </form>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button className="btn primary" type="button" onClick={aplicarFiltros} style={{ padding: "10px 20px" }}>
+              Buscar
+            </button>
+            {(busqueda || categoriaId) && (
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={() => {
+                  setBusqueda("");
+                  setCategoriaId("");
+                  setPagina(1);
+                  cargarProductos(1, "", "");
+                }}
+                style={{ padding: "10px 18px" }}
+              >
+                Limpiar
+              </button>
+            )}
           </div>
-          <div className="shopChips">
+        </div>
+
+        {/* Pestañas de Categorías */}
+        <div className="categoryPills">
+          <button
+            type="button"
+            className={categoriaId === "" ? "chip active" : "chip"}
+            onClick={() => {
+              setCategoriaId("");
+              setPagina(1);
+              cargarProductos(1, "", busqueda);
+            }}
+          >
+            Todas las Categorías
+          </button>
+          {categorias.map((categoria) => (
             <button
+              key={categoria.id}
               type="button"
-              className={categoryId === "" ? "chip active" : "chip"}
+              className={categoriaId === String(categoria.id) ? "chip active" : "chip"}
               onClick={() => {
-                setCategoryId("");
-                setPage(1);
-                loadProducts(1);
+                setCategoriaId(String(categoria.id));
+                setPagina(1);
+                cargarProductos(1, String(categoria.id), busqueda);
               }}
             >
-              Todas
+              {categoria.name}
             </button>
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={categoryId === String(c.id) ? "chip active" : "chip"}
-                onClick={() => {
-                  setCategoryId(String(c.id));
-                  setPage(1);
-                  loadProducts(1);
-                }}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
 
-      <section className="panel productFilter">
-        <form className="filters" onSubmit={applyFilters}>
-          <div className="field">
-            <label htmlFor="searchInput">Buscar</label>
-            <input
-              id="searchInput"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Camisa, jean, chaqueta..."
-            />
-          </div>
-          <div className="field">
-            <label>Categoría</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              <option value="">Todas</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field actions">
-            <button className="btn" type="submit">
-              Aplicar
-            </button>
-            <button
-              className="btn ghost"
-              type="button"
-              onClick={() => {
-                setQ("");
-                setCategoryId("");
-                setPage(1);
-                setTimeout(() => loadProducts(1), 0);
-              }}
-            >
-              Limpiar
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {loading && <div className="panel muted">Cargando productos...</div>}
+      {/* GRILLA DE PRODUCTOS */}
+      {cargando && <div className="panel muted" style={{ textAlign: "center", padding: "40px" }}>Cargando catálogo artesanal...</div>}
       {error && <div className="panel danger">{error}</div>}
 
       <section className="grid">
-        {items.length
-          ? items.map((p) => <ProductCard key={p.id} p={p} />)
-          : !loading && <div className="panel muted">No hay productos disponibles para esta búsqueda.</div>}
+        {productos.length
+          ? productos.map((producto) => <ProductCard key={producto.id} p={producto} />)
+          : !cargando && (
+              <div className="panel muted" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px" }}>
+                No hay productos disponibles para esta búsqueda o categoría.
+              </div>
+            )}
       </section>
 
-      <section className="pager">
-        <button className="btn ghost" disabled={page <= 1} onClick={() => setPage((v) => v - 1)}>
-          Anterior
-        </button>
-        <span className="muted">
-          Página {page} de {totalPages}
-        </span>
-        <button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage((v) => v + 1)}>
-          Siguiente
-        </button>
+      {/* PAGINADOR */}
+      {totalPaginas > 1 && (
+        <section className="pager">
+          <button className="btn ghost" disabled={pagina <= 1} onClick={() => setPagina((v) => v - 1)}>
+            ← Anterior
+          </button>
+          <span className="muted" style={{ fontWeight: 600 }}>
+            Página {pagina} de {totalPaginas}
+          </span>
+          <button className="btn ghost" disabled={pagina >= totalPaginas} onClick={() => setPagina((v) => v + 1)}>
+            Siguiente →
+          </button>
+        </section>
+      )}
+
+      {/* PROPUESTA DE VALOR */}
+      <section className="valueProps">
+        <div className="valueCard">
+          <div className="valueIcon">🧶</div>
+          <div>
+            <div className="valueTitle">100% Hecho a Mano</div>
+            <div className="valueDesc">Piezas artesanales tejidas con tradición y esmero por tejedoras colombianas.</div>
+          </div>
+        </div>
+
+        <div className="valueCard">
+          <div className="valueIcon">🚚</div>
+          <div>
+            <div className="valueTitle">Envío Nacional Seguro</div>
+            <div className="valueDesc">Llegamos a todas las ciudades de Colombia con entrega garantizada.</div>
+          </div>
+        </div>
+
+        <div className="valueCard">
+          <div className="valueIcon">🛡️</div>
+          <div>
+            <div className="valueTitle">Calidad Garantizada</div>
+            <div className="valueDesc">Materiales seleccionados de alta resistencia, suavidad y durabilidad.</div>
+          </div>
+        </div>
+
+        <div className="valueCard">
+          <div className="valueIcon">💬</div>
+          <div>
+            <div className="valueTitle">Atención Personalizada</div>
+            <div className="valueDesc">Asesoría directa en cada compra y acompañamiento constante.</div>
+          </div>
+        </div>
       </section>
     </div>
   );

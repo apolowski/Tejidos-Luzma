@@ -22,7 +22,8 @@ def get_or_create_cart(db: Session, *, user: User) -> Cart:
         return cart
     cart = Cart(user_id=user.id)
     db.add(cart)
-    db.flush()
+    db.commit()
+    db.refresh(cart)
     return cart
 
 
@@ -40,6 +41,8 @@ def get_cart_details(db: Session, *, user: User) -> dict:
     subtotal = 0.0
     for item in items:
         variant = item.variant
+        if not variant or not variant.product:
+            continue
         product: Product = variant.product  # type: ignore[assignment]
         unit_price = float(product.price)
         subtotal += unit_price * item.quantity
@@ -65,9 +68,9 @@ def add_to_cart(db: Session, *, user: User, product_variant_id: int, quantity: i
     cart = get_or_create_cart(db, user=user)
     variant = db.get(ProductVariant, product_variant_id)
     if not variant:
-        raise ValueError("Variant not found")
+        raise ValueError("Variante no encontrada.")
     if quantity < 1:
-        raise ValueError("Invalid quantity")
+        raise ValueError("Cantidad no válida.")
 
     existing = db.execute(
         select(CartItem).where(CartItem.cart_id == cart.id, CartItem.product_variant_id == product_variant_id)
@@ -75,7 +78,7 @@ def add_to_cart(db: Session, *, user: User, product_variant_id: int, quantity: i
 
     new_qty = quantity if not existing else existing.quantity + quantity
     if new_qty > variant.stock:
-        raise ValueError("Not enough stock")
+        raise ValueError(f"No hay suficiente stock disponible (disponibles: {variant.stock}).")
 
     if existing:
         existing.quantity = new_qty
