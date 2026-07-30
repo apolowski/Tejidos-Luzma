@@ -111,20 +111,21 @@ logger = logging.getLogger("app.http")
 # Crear la aplicación FastAPI.
 app = FastAPI(title=settings.app_name)
 
-# Permitir que el frontend acceda a la API.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Activar middleware de autenticación.
 app.add_middleware(AuthContextMiddleware)
 
 # Activar middleware de límite de peticiones.
 app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_per_minute)
+
+# Permitir que el frontend acceda a la API (debe ser el último middleware agregado para envolver a todos).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list(),
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Crear carpeta para guardar imágenes subidas.
 uploads_dir = Path(os.getcwd()) / settings.upload_dir
