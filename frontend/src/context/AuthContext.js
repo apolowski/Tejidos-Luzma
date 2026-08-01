@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     setAuthToken(token || "");
@@ -37,6 +38,7 @@ export function AuthProvider({ children }) {
       setAuthToken(guestToken);
       setToken(guestToken);
       setUser(res.data.user);
+      setIsLoggingOut(false);
       return guestToken;
     } catch {
       // Si falla, el cliente puede intentar de nuevo más tarde.
@@ -45,26 +47,32 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    if (!token) {
+    if (!token && !isLoggingOut) {
       createGuestSession();
     }
-  }, [token]);
+  }, [token, isLoggingOut]);
 
   async function login(email, password) {
     const res = await api.post("/auth/login", { email, password });
+    setIsLoggingOut(false);
     setToken(res.data.token.access_token);
     setUser(res.data.user);
   }
 
   async function register(name, email, password) {
     const res = await api.post("/auth/register", { name, email, password });
+    setIsLoggingOut(false);
     setToken(res.data.token.access_token);
     setUser(res.data.user);
   }
 
   function logout() {
+    setIsLoggingOut(true);
     setToken("");
     setUser(null);
+    setAuthToken("");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   }
 
   function updateUser(updatedUser) {
@@ -73,7 +81,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(
     () => ({ token, user, login, register, logout, updateUser, createGuestSession }),
-    [token, user]
+    [token, user, isLoggingOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
