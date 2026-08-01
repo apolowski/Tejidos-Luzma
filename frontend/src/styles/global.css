@@ -112,6 +112,139 @@ main.container {
   gap: 14px;
 }
 
+.authWrapper {
+  min-height: calc(100vh - 140px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.authCard {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(44, 34, 30, 0.16);
+  background: #ffffff;
+}
+
+.authHeroSide {
+  background: linear-gradient(145deg, #2c221a 0%, #1c1510 100%);
+  background-image: 
+    radial-gradient(circle at 50% 20%, rgba(212, 163, 115, 0.18), transparent 65%),
+    linear-gradient(145deg, #2c221a 0%, #1c1510 100%);
+  padding: 52px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  position: relative;
+}
+
+.authHeroContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.authHeroLogo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(212, 163, 115, 0.4);
+  transition: transform 0.3s ease;
+}
+
+.authHeroLogo:hover {
+  transform: scale(1.04);
+}
+
+.authHeroTitle {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.authHeroDesc {
+  color: rgba(247, 238, 223, 0.85);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 28px;
+  max-width: 360px;
+}
+
+.authHeroFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.authHeroFeatureItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #f7eedf;
+  font-size: 0.88rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.authHeroFeatureItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.authFormSide {
+  width: 100%;
+  background: #ffffff;
+  padding: 52px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.authTitle {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+}
+
+.authSub {
+  color: var(--muted);
+  font-size: 0.93rem;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 860px) {
+  .authCard {
+    grid-template-columns: 1fr;
+  }
+  .authHeroSide {
+    padding: 36px 24px;
+  }
+  .authFormSide {
+    padding: 36px 24px;
+  }
+}
+
 .announcementBar {
   background: var(--dark-hero);
   color: #f7eedf;
